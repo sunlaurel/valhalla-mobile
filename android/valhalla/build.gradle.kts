@@ -1,6 +1,7 @@
 import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 import com.vanniktech.maven.publish.SonatypeHost
 import java.net.URI
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.library)
@@ -12,6 +13,7 @@ plugins {
 android {
     namespace = "com.valhalla.valhalla"
     compileSdk = 36
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         minSdk = 26
@@ -76,6 +78,23 @@ dependencies {
 }
 
 val archs = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val ndkVersionForBuild = "29.0.14206865"
+
+// Resolve the SDK location the same way AGP does, from local.properties or the environment,
+// so the NDK path isn't hardcoded to any one developer's machine.
+val sdkDir: String = run {
+    val localProps = Properties()
+    val localPropsFile = file("${project.rootDir}/local.properties")
+    if (localPropsFile.exists()) {
+        localPropsFile.inputStream().use { stream -> localProps.load(stream) }
+    }
+    localProps.getProperty("sdk.dir")
+        ?: System.getenv("ANDROID_HOME")
+        ?: System.getenv("ANDROID_SDK_ROOT")
+        ?: throw GradleException(
+            "Could not resolve the Android SDK location. Set ANDROID_HOME/ANDROID_SDK_ROOT or add sdk.dir to local.properties."
+        )
+}
 
 // Define a custom task to run the shell script
 archs.forEach { arch ->
@@ -85,7 +104,10 @@ archs.forEach { arch ->
 
         // Change the working door to the repository root.
         workingDir = file("${project.projectDir}/../../")
+
+        // Exporting environment variables
         environment("VCPKG_ROOT", "${workingDir.absolutePath}/vcpkg")
+        environment("ANDROID_NDK_HOME", "${sdkDir}/ndk/${ndkVersionForBuild}")
 
         commandLine("bash", "./build.sh", "--android", arch)
 

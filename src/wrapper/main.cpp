@@ -22,7 +22,11 @@ Java_com_valhalla_valhalla_ValhallaKotlin_route(JNIEnv *env,
     std::string result;
     try {
         // TODO: Android currently creates a new actor every time. Optimize to be like iOS later.
-        ValhallaActor valhallaActor(config_path);
+        // ValhallaActor (via TileGetterWrapper) takes ownership of httpClient and deletes it when
+        // the actor is torn down, so it must be heap-allocated -- mirrors the iOS wrapper's
+        // `new ValhallaMobileHttpClientImpl()` in ValhallaWrapper.mm.
+        ValhallaMobileHttpClient* httpClient = new ValhallaMobileHttpClientImpl();
+        ValhallaActor valhallaActor(config_path, httpClient);
         result = valhallaActor.route(request);
     } catch (const valhalla::valhalla_exception_t &err) {
         printf("[ValhallaActor] route valhalla_exception: %s\n", err.what());

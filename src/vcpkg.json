@@ -2,6 +2,7 @@
   "name": "valhalla-mobile",
   "version-string": "0.1.0",
   "dependencies": [
+    "curl",
     "protobuf",
     "boost-algorithm",
     "boost-foreach",
